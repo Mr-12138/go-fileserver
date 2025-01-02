@@ -24,7 +24,7 @@ if (location.host === "www.bilibili.com") {
 
 // 视频页
 if (location.href.startsWith('https://www.bilibili.com/video/')) {
-     GM_addStyle(".slide-ad-exp, .video-page-game-card-small, .activity-m-v1 , .act-now ,.video-page-special-card-small{ display: none !important; }");
+     GM_addStyle("#bar ,  .pop-live-small-mode,.slide-ad-exp, .video-page-game-card-small, .activity-m-v1 , .act-now ,.video-page-special-card-small{ display: none !important; }");
 }
 
 // 直播页
