@@ -15,16 +15,36 @@
 
 // 移除搜索框热搜
 GM_addStyle(".trending { display: none !important; }");
+  // 隐藏游戏中心、下载客户端、赛事和会员购选项
+GM_addStyle(`
+    a[href*="//game.bilibili.com/platform"] { display: none !important; }
+    a[href*="//app.bilibili.com"] { display: none !important; }
+    a[href*="//www.bilibili.com/match/home/"] { display: none !important; }
+    a[href*="//show.bilibili.com/platform/home.html"] { display: none !important; }
+    a[href*="//manga.bilibili.com"] { display: none !important; }
+    a[href*="//account.bilibili.com"] { display: none !important; }
+`);
 
 // 首页优化
 if (location.host === "www.bilibili.com") {
     // 主页轮播图 直播卡片，番剧卡片 ， 客服按钮
-    GM_addStyle(".recommended-swipe , .floor-single-card , .palette-button-wrap { display: none !important; }");
+
+     GM_addStyle(".adblock-tips,.recommended-swipe , .floor-single-card , .palette-button-wrap { display: none !important; }");
+    // 移除推广卡片
+    // 监听 DOM 变化以处理动态加载的内容
+    const observer = new MutationObserver(() => {
+    document.querySelectorAll('.bili-video-card.is-rcmd:not(.enable-no-interest),.recommended-swipe ').forEach(el => {
+        el.style.display = 'none';
+    });
+    });
+
+// 开始监听
+observer.observe(document.body, { childList: true, subtree: true });
 }
 
 // 视频页
 if (location.href.startsWith('https://www.bilibili.com/video/')) {
-     GM_addStyle("#bar ,  .pop-live-small-mode,.slide-ad-exp, .video-page-game-card-small, .activity-m-v1 , .act-now ,.video-page-special-card-small{ display: none !important; }");
+     GM_addStyle(".video-page-operator-card-small,#bar ,  .pop-live-small-mode,.slide-ad-exp, .video-page-game-card-small, .activity-m-v1 , .act-now ,.video-page-special-card-small{ display: none !important; }");
 }
 
 // 直播页
