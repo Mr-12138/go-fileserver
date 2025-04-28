@@ -18,6 +18,10 @@ import (
 	"github.com/skip2/go-qrcode"
 )
 
+// 版本号 - 可以在编译时通过 ldflags 注入
+// 例如: go build -ldflags="-X main.Version=1.0.1" -o go-fileserver main.go
+var Version = "1.0.1"
+
 const (
 	// 要共享的目录
 	shareDir = "D:/Download"
@@ -975,6 +979,9 @@ func getMimeType(filename string) string {
 
 // 配置服务器并启动
 func main() {
+	// 显示版本信息
+	log.Printf("文件服务器 v%s 正在启动...", Version)
+
 	// 初始化服务器
 	config := initConfig()
 
@@ -982,7 +989,7 @@ func main() {
 	setupRoutes(config)
 
 	// 启动服务器
-	log.Printf("http://%s", serverAddr)
+	log.Printf("服务器已启动: http://%s", serverAddr)
 	if err := http.ListenAndServe(serverAddr, nil); err != nil {
 		log.Fatal("服务器启动失败: ", err)
 	}

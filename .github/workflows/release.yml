@@ -1,0 +1,110 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*' # 触发标签以v开头，如v1.0.1
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        goos: [windows, linux, darwin]
+        goarch: [amd64, arm64]
+        exclude:
+          # 排除不常用的组合
+          - goos: windows
+            goarch: arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21' # 使用Go 1.21版本，可以根据需要调整
+      
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+      
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          # 创建输出目录
+          mkdir -p build
+          
+          # 二进制文件名称设置
+          BINARY_NAME="go-fileserver"
+          if [ "$GOOS" = "windows" ]; then
+            BINARY_NAME="$BINARY_NAME.exe"
+          fi
+          
+          # 构建带版本号的二进制文件（去除调试信息减小体积）
+          go build -ldflags="-s -w -X main.Version=${{ env.VERSION }}" -o "build/$BINARY_NAME" main.go
+          
+          # 创建压缩包
+          cd build
+          if [ "$GOOS" = "windows" ]; then
+            zip "../go-fileserver-${{ env.VERSION }}-$GOOS-$GOARCH.zip" "$BINARY_NAME"
+          else
+            tar -czvf "../go-fileserver-${{ env.VERSION }}-$GOOS-$GOARCH.tar.gz" "$BINARY_NAME"
+          fi
+          cd ..
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: go-fileserver-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: go-fileserver-${{ env.VERSION }}-${{ matrix.goos }}-${{ matrix.goarch }}.*
+      
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+      
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+      
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          name: 文件服务器 v${{ env.VERSION }}
+          tag_name: ${{ github.ref }}
+          draft: false
+          prerelease: false
+          files: |
+            go-fileserver-*/*.zip
+            go-fileserver-*/*.tar.gz
+          body: |
+            # 文件服务器 v${{ env.VERSION }}
+            
+            文件共享服务器，支持局域网文件上传下载。
+            
+            ## 下载
+            
+            - Windows: 下载 `go-fileserver-${{ env.VERSION }}-windows-amd64.zip`
+            - macOS: 下载 `go-fileserver-${{ env.VERSION }}-darwin-amd64.tar.gz` (Intel) 或 `go-fileserver-${{ env.VERSION }}-darwin-arm64.tar.gz` (Apple Silicon)
+            - Linux: 下载 `go-fileserver-${{ env.VERSION }}-linux-amd64.tar.gz` 或 `go-fileserver-${{ env.VERSION }}-linux-arm64.tar.gz`
+            
+            ## 使用方法
+            
+            1. 解压下载的文件
+            2. 修改程序中的共享目录(可选)
+            3. 运行程序，访问 `http://localhost:8080` 或局域网IP地址 
